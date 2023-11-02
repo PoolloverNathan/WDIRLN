@@ -1,11 +1,14 @@
 use std::mem::replace;
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Hash)]
-struct ListNode<T>(T, ListOf<T>);
+pub struct ListNode<T>(T, ListOf<T>);
 
-type ListOf<T> = Option<Box<ListNode<T>>>;
+pub type ListOf<T> = Option<Box<ListNode<T>>>;
 
-trait List<T>: Sized {
+pub trait List<T>: Sized + Default {
+    /// Creates a list from an existing iterable.
+    fn new(values: impl IntoIterator<Item = T>) -> Self;
+
     /// Helper method to remove a list's internal representation.
     fn into_list(self) -> impl List<T>;
     /// Helper method to remove a list's internal representation.
@@ -37,6 +40,15 @@ trait List<T>: Sized {
 }
 
 impl<T> List<T> for ListOf<T> {
+    fn new(values: impl IntoIterator<Item = T>) -> Self {
+        let mut list = ListOf::default();
+        let mut listptr = &mut list;
+        for item in values {
+            let end = listptr.insert(Box::new(ListNode(item, None)));
+            listptr = &mut end.as_mut().1;
+        }
+        list
+    }
     fn into_list(self) -> impl List<T> {
         self
     }
