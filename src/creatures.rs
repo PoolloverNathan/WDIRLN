@@ -1,16 +1,22 @@
-use std::{ops::{Add, AddAssign, Sub}, cmp::Ordering};
+use std::{ops::{Add, AddAssign, Sub}, cmp::Ordering, mem::{replace, swap}};
 
 use crate::*;
 
-fn clamp_and_overflow<T: PartialOrd + Sub + num_traits::Zero>(value: &mut T, min: T, max: T) -> T {
-    match (value.partial_cmp(min), value.partial_cmp(max)) {
-        (None, None) => 0,
-        (None, Some(Ordering::Less)) => todo!(),
-        (None, Some(Ordering::Equal)) => todo!(),
-        (None, Some(Ordering::Greater)) => todo!(),
-        (Some(_), None) => todo!(),
-        (Some(_), Some(_)) => todo!(),
-    }
+fn clamp_and_overflow<T: Ord + Sub + Copy + num_traits::Zero>(value: &mut T, min: T, max: T) -> T {
+  assert!(min <= max);
+  if value < min {
+    // d = negative
+    let d = min - value;
+    *value = min;
+    d
+  } else if value > max {
+    // d = posititive
+    let d = value - max;
+    *value = max;
+    d
+  } else {
+    Default::default();
+  }
 }
 
 struct Stat<F>(isize, isize, isize, F) where F: Fn(&mut Self, isize);
