@@ -4,12 +4,12 @@ use crate::*;
 
 fn clamp_and_overflow<T: Ord + Sub + Copy + num_traits::Zero>(value: &mut T, min: T, max: T) -> T {
   assert!(min <= max);
-  if value < min {
+  if *value < min {
     // d = negative
     let d = min - value;
     *value = min;
     d
-  } else if value > max {
+  } else if *value > max {
     // d = posititive
     let d = value - max;
     *value = max;
@@ -20,12 +20,20 @@ fn clamp_and_overflow<T: Ord + Sub + Copy + num_traits::Zero>(value: &mut T, min
 }
 
 struct Stat<F>(isize, isize, isize, F) where F: Fn(&mut Self, isize);
-impl<F> Stat<F> where F: Fn(&mut Self, isize) {
-    
+impl<F> Stat<F> where F: Fn(&mut Self, NonZeroIsize) {
+    fn percent(&self) -> f64 {
+      let Self(value, min, max) = self;
+      let value = value - min;
+      let range = max - min;
+      value / range
+    }
 }
 impl<F> AddAssign<isize> for Stat<F> where F: Fn(&mut Self, isize) {
     fn add_assign(&mut self, rhs: isize) {
-        self.0 = 
+        self.0 += rhs;
+        if let Some(d) = NonZeroIsize::new(clamp_and_overflow(&mut self, self.1, self.2)) {
+          self.3(d);
+        }
     }
 }
 
