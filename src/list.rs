@@ -1,4 +1,4 @@
-use std::mem::replace;
+use std::{mem::replace, marker::PhantomData};
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Hash)]
 pub struct ListNode<T>(T, ListOf<T>);
@@ -32,11 +32,15 @@ pub trait List<T>: Sized + Default {
     /// 
     /// [into_iter]: #into_iter
     fn iter<'a>(&'a self) -> impl Iterator<Item = &'a T> where T: 'a;
-    /// Returns an iterator over mutable references to the list's elements.  (The type of the iterator cannot be named and is different than [into_iter] and [iter].)
+    /// Returns an iterator over mutable references to the list's elements. (The type of the iterator cannot be named and is different than [into_iter] and [iter].)
     /// 
     /// [into_iter]: #into_iter
     /// [iter]: #iter
     fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut T> where T: 'a;
+    /// Returns an iterator over references to the list nodes instead of the values themselves. This is mostly useless on its own; you probably want [iter_tails_mut()](#iter_tails_mut).
+    fn iter_tails<'a>(&'a self) -> impl Iterator<Item = &'a Self>;
+    /// Returns an iterator over mutable references to the list nodes. This is useful 
+    fn iter_tails_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut Self>;
 }
 
 impl<T> List<T> for ListOf<T> {
@@ -151,5 +155,34 @@ impl<T> List<T> for ListOf<T> {
             }
         }
         Iter(self)
+    }
+    fn iter_tails<'a>(&'a self) -> impl Iterator<Item = &'a Self> {
+        struct Iter<'a, T>(&'a ListOf<T>);
+        impl<'a, T> Iterator for Iter<'a, T> {
+            type Item = &'a ListOf<T>;
+            fn next(&mut self) -> Option<Self::Item> {
+                match self.0 {
+                    val@&Some(node) => {
+                        let value = node.as_ref();
+                        self.0 = &value.1;
+                        Some(val)
+                    }
+                    &None => None
+                }
+            }
+        }
+        Iter(self)
+    }
+    fn iter_tails_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut Self> {
+        todo!();
+        struct Iter<'a, T>(PhantomData<&'a T>);
+        impl<'a, T> Iterator for Iter<'a, T> {
+            type Item = &'a mut Option<Box<ListNode<T>>>;
+            fn next(&mut self) -> Option<Self::Item> {
+                unreachable!();
+            }
+        }
+        #[allow(unreachable_code)]
+        Iter(PhantomData) // make typechecker happy
     }
 }
